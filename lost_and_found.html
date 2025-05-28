@@ -1,0 +1,147 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>學校遺失物公告</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header, footer, main {
+      width: 100%;
+    }
+    header {
+      height: 25vh;
+      background-color: #005a9c;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2em;
+      font-weight: bold;
+    }
+    main {
+      height: 50vh;
+      overflow-y: auto;
+      padding: 1em;
+      box-sizing: border-box;
+    }
+    footer {
+      height: 25vh;
+      background-color: #f2f2f2;
+      padding: 1em;
+      box-sizing: border-box;
+    }
+    .filters {
+      margin-bottom: 1em;
+    }
+    .filters label {
+      margin-right: 1em;
+    }
+    .lost-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1em;
+    }
+    .item {
+      border: 1px solid #ccc;
+      padding: 0.5em;
+      width: 200px;
+      box-sizing: border-box;
+    }
+    .item img {
+      width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <header>學校失物招領公告</header>
+  <main>
+    <div class="filters">
+      <label>拾獲日期從 <input type="date" id="start-date"> 到 <input type="date" id="end-date"></label>
+      <label>拾獲校區
+        <select id="campus-select">
+          <option value="">全部</option>
+          <option value="進德校區">進德校區</option>
+          <option value="寶山校區">寶山校區</option>
+        </select>
+      </label>
+      <label>拾獲地點
+        <select id="location-select">
+          <option value="">全部</option>
+          <optgroup label="進德校區">
+            <option value="操場">操場</option>
+            <option value="白沙大樓">白沙大樓</option>
+            <option value="教學大樓">教學大樓</option>
+          </optgroup>
+          <optgroup label="寶山校區">
+            <option value="工學院大樓">工學院大樓</option>
+            <option value="管理學院大樓">管理學院大樓</option>
+            <option value="科技學院大樓">科技學院大樓</option>
+            <option value="教學一館">教學一館</option>
+            <option value="教學二館">教學二館</option>
+          </optgroup>
+        </select>
+      </label>
+      <label>物品名稱關鍵字 <input type="text" id="item-keyword" placeholder="輸入如：雨傘、錢包"></label>
+      <button onclick="loadItems()">篩選</button>
+    </div>
+    <div class="lost-items" id="lost-items"></div>
+  </main>
+  <footer>
+    <p>1. 本遺失物招領所列之遺失物自拾獲當日起六個月後將由承辦人員自行處理。</p>
+    <p>2. 承辦人聯絡電話：校內分機5714 柯先生</p>
+  </footer>
+  <script>
+    async function loadItems() {
+      const response = await fetch('lost_items.csv');
+      const text = await response.text();
+      const lines = text.split('\n').slice(1); // Skip header
+      const items = lines.map(line => {
+        const [id, date, campus, location, item] = line.split(',');
+        return { id, date, campus, location, item };
+      }).filter(item => item.id);
+
+      const startDate = document.getElementById('start-date').value.replaceAll('-', '');
+      const endDate = document.getElementById('end-date').value.replaceAll('-', '');
+      const campus = document.getElementById('campus-select').value;
+      const location = document.getElementById('location-select').value;
+      const keyword = document.getElementById('item-keyword').value.trim().toLowerCase();
+
+      const filtered = items.filter(item => {
+        if (startDate && item.date < startDate) return false;
+        if (endDate && item.date > endDate) return false;
+        if (campus && item.campus !== campus) return false;
+        if (location && item.location !== location) return false;
+        if (keyword && (!item.item || !item.item.toLowerCase().includes(keyword))) return false;
+        return true;
+      });
+
+      const container = document.getElementById('lost-items');
+      container.innerHTML = '';
+
+      filtered.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+          <img src="photo/${item.id}.jpg" alt="遺失物">
+          <p>拾獲日期：${item.date}</p>
+          <p>拾獲校區：${item.campus}</p>
+          <p>拾獲地點：${item.location}</p>
+          <p>拾獲物品：${item.item}</p>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    loadItems();
+  </script>
+</body>
+</html>
